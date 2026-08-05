@@ -143,19 +143,20 @@
         <div id="status" class="disconnected">Nicht verbunden</div>
     </div>
 
-        <script>
+            <script>
         let discordSdk;
         const statusEl = document.getElementById('status');
         const frameEl = document.getElementById('webFrame');
         const infoEl = document.getElementById('info');
         
-        // !!! 🔑 WICHTIG: DIESE URL MUSST DU NACH DEM DEPLOYMENT DES PROXY ERSETZEN !!!
-        const PROXY_BASE = 'https://DEIN-PROXY-NAME.onrender.com/proxy?url=';
+        // 🚀 WICHTIGE ÄNDERUNG: Hier ist dein Live-Proxy von Railway!
+        // Wir fügen hier den Pfad /proxy hinzu, da wir ihn in server.js definiert haben.
+        const PROXY_BASE = 'https://discord-webviewer-production.up.railway.app/proxy?url=';
 
         async function setupDiscord() {
             try {
                 discordSdk = new Discord.SDK({
-                    clientId: '1534502023997685770', // Deine App-ID
+                    clientId: '1534502023997685770', 
                 });
                 
                 await discordSdk.ready();
@@ -167,7 +168,7 @@
                 // Auf Broadcasts hören
                 discordSdk.subscribe('BROADCAST', (data) => {
                     if (data.type === 'URL_CHANGE') {
-                        loadUrl(data.url, false); // broadcast=false bei internem Update
+                        loadUrl(data.url, false); 
                     }
                 });
                 
@@ -183,13 +184,13 @@
                 url = 'https://' + url;
             }
             
-            // 🚀 NEUE LOGIK: Die URL wird jetzt über den Proxy geleitet!
+            // Die URL wird über den Proxy geleitet!
             const proxyUrl = PROXY_BASE + encodeURIComponent(url);
 
             document.getElementById('urlInput').value = url;
             infoEl.style.display = 'none';
             frameEl.style.display = 'block';
-            frameEl.src = proxyUrl; // Hier wird der Proxy-Link gesetzt!
+            frameEl.src = proxyUrl; // <-- HIER WIRTS DER PROXY-LINK VERWENDET!
             
             // An andere senden (Nur wenn wir nicht gerade ein internes Update durchführen)
             if (broadcast && discordSdk) {
@@ -200,7 +201,7 @@
             }
         }
         
-        // Event Listeners (Bleibt gleich)
+        // Event Listeners (Der Rest bleibt unverändert)
         document.getElementById('loadBtn').addEventListener('click', () => {
             loadUrl(document.getElementById('urlInput').value);
         });
@@ -211,7 +212,7 @@
             }
         });
         
-        // Klickbare Liste (Bleibt gleich)
+        // Klickbare Liste
         document.querySelectorAll('.site-list li').forEach(li => {
             li.addEventListener('click', () => {
                 loadUrl(li.dataset.url);
@@ -222,6 +223,7 @@
         setupDiscord();
         frameEl.style.display = 'none';
     </script>
+
 
 </body>
 </html>
