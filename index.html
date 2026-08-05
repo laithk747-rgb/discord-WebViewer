@@ -143,16 +143,19 @@
         <div id="status" class="disconnected">Nicht verbunden</div>
     </div>
 
-    <script>
+        <script>
         let discordSdk;
         const statusEl = document.getElementById('status');
         const frameEl = document.getElementById('webFrame');
         const infoEl = document.getElementById('info');
         
+        // !!! 🔑 WICHTIG: DIESE URL MUSST DU NACH DEM DEPLOYMENT DES PROXY ERSETZEN !!!
+        const PROXY_BASE = 'https://DEIN-PROXY-NAME.onrender.com/proxy?url=';
+
         async function setupDiscord() {
             try {
                 discordSdk = new Discord.SDK({
-                    clientId: '1534502023997685770',
+                    clientId: '1534502023997685770', // Deine App-ID
                 });
                 
                 await discordSdk.ready();
@@ -164,7 +167,7 @@
                 // Auf Broadcasts hören
                 discordSdk.subscribe('BROADCAST', (data) => {
                     if (data.type === 'URL_CHANGE') {
-                        loadUrl(data.url, false);
+                        loadUrl(data.url, false); // broadcast=false bei internem Update
                     }
                 });
                 
@@ -180,12 +183,15 @@
                 url = 'https://' + url;
             }
             
+            // 🚀 NEUE LOGIK: Die URL wird jetzt über den Proxy geleitet!
+            const proxyUrl = PROXY_BASE + encodeURIComponent(url);
+
             document.getElementById('urlInput').value = url;
             infoEl.style.display = 'none';
             frameEl.style.display = 'block';
-            frameEl.src = url;
+            frameEl.src = proxyUrl; // Hier wird der Proxy-Link gesetzt!
             
-            // An andere senden
+            // An andere senden (Nur wenn wir nicht gerade ein internes Update durchführen)
             if (broadcast && discordSdk) {
                 discordSdk.commands.broadcast({
                     type: 'URL_CHANGE',
@@ -194,7 +200,7 @@
             }
         }
         
-        // Event Listeners
+        // Event Listeners (Bleibt gleich)
         document.getElementById('loadBtn').addEventListener('click', () => {
             loadUrl(document.getElementById('urlInput').value);
         });
@@ -205,7 +211,7 @@
             }
         });
         
-        // Klickbare Liste
+        // Klickbare Liste (Bleibt gleich)
         document.querySelectorAll('.site-list li').forEach(li => {
             li.addEventListener('click', () => {
                 loadUrl(li.dataset.url);
@@ -214,9 +220,8 @@
         
         // Initialisieren
         setupDiscord();
-        
-        // Frame zuerst verstecken
         frameEl.style.display = 'none';
     </script>
+
 </body>
 </html>
