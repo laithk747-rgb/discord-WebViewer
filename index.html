@@ -58,12 +58,14 @@
             flex: 1;
             position: relative;
             background: #000;
+            overflow: hidden;
         }
         
         #webFrame {
             width: 100%;
             height: 100%;
             border: none;
+            background: white;
         }
         
         #status {
@@ -74,10 +76,44 @@
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 12px;
+            z-index: 100;
         }
         
         .connected { color: #4ecca3; }
         .disconnected { color: #e94560; }
+        
+        #info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            max-width: 80%;
+        }
+        
+        #info h2 {
+            margin-bottom: 10px;
+            color: #e94560;
+        }
+        
+        .site-list {
+            text-align: left;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .site-list li {
+            margin: 5px 0;
+            color: #4ecca3;
+            cursor: pointer;
+        }
+        
+        .site-list li:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -88,74 +124,99 @@
     </div>
     
     <div id="frameContainer">
-        <iframe id="webFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        <div id="info">
+            <h2>WebViewer Activity</h2>
+            <p>⚠️ Viele Websites blockieren iframes (X-Frame-Options)</p>
+            <p>Funktionierende Seiten (klickbar):</p>
+            <ul class="site-list">
+                <li data-url="https://example.com">example.com</li>
+                <li data-url="https://httpbin.org">httpbin.org</li>
+                <li data-url="https://www.w3schools.com">w3schools.com</li>
+                <li data-url="https://www.wikipedia.org">wikipedia.org (manchmal)</li>
+                <li data-url="https://www.reddit.com">reddit.com (manchmal)</li>
+            </ul>
+            <p style="margin-top: 20px; font-size: 12px; color: #888;">
+                Tip: Verwende Web-Proxy-Dienste oder eigene Seiten die iframes erlauben.
+            </p>
+        </div>
+        <iframe id="webFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"></iframe>
         <div id="status" class="disconnected">Nicht verbunden</div>
     </div>
 
     <script>
-        // Discord SDK initialisieren
         let discordSdk;
+        const statusEl = document.getElementById('status');
+        const frameEl = document.getElementById('webFrame');
+        const infoEl = document.getElementById('info');
         
         async function setupDiscord() {
             try {
                 discordSdk = new Discord.SDK({
-                    clientId: '1534502023997685770', // Wird später ersetzt
+                    clientId: '1534502023997685770',
                 });
                 
                 await discordSdk.ready();
                 
-                // Mit dem Voice Channel verbinden
                 const channel = await discordSdk.commands.getChannel();
+                statusEl.textContent = `Verbunden: ${channel.name}`;
+                statusEl.className = 'connected';
                 
-                // Status anzeigen
-                document.getElementById('status').textContent = `Verbunden: ${channel.name}`;
-                document.getElementById('status').className = 'connected';
-                
-                // Auf Nachrichten von anderen Teilnehmern hören
-                discordSdk.subscribe('MESSAGE_CREATE', (data) => {
-                    if (data.message && data.message.content) {
-                        loadUrl(data.message.content);
+                // Auf Broadcasts hören
+                discordSdk.subscribe('BROADCAST', (data) => {
+                    if (data.type === 'URL_CHANGE') {
+                        loadUrl(data.url, false);
                     }
                 });
                 
             } catch (err) {
                 console.error('Discord SDK Fehler:', err);
-                // Lokalen Modus für Tests außerhalb Discord
-                document.getElementById('status').textContent = 'Lokaler Modus';
+                statusEl.textContent = 'Lokaler Modus (Test)';
+                statusEl.style.color = '#ffa500';
             }
         }
         
-        function loadUrl(url) {
+        function loadUrl(url, broadcast = true) {
             if (!url.startsWith('http')) {
                 url = 'https://' + url;
             }
-            document.getElementById('webFrame').src = url;
-            document.getElementById('urlInput').value = url;
-        }
-        
-        // Event Listener
-        document.getElementById('loadBtn').addEventListener('click', () => {
-            const url = document.getElementById('urlInput').value;
-            loadUrl(url);
             
-            // URL an andere Teilnehmer senden (wenn verbunden)
-            if (discordSdk) {
+            document.getElementById('urlInput').value = url;
+            infoEl.style.display = 'none';
+            frameEl.style.display = 'block';
+            frameEl.src = url;
+            
+            // An andere senden
+            if (broadcast && discordSdk) {
                 discordSdk.commands.broadcast({
                     type: 'URL_CHANGE',
                     url: url
-                });
+                }).catch(() => {});
             }
+        }
+        
+        // Event Listeners
+        document.getElementById('loadBtn').addEventListener('click', () => {
+            loadUrl(document.getElementById('urlInput').value);
         });
         
         document.getElementById('urlInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                document.getElementById('loadBtn').click();
+                loadUrl(document.getElementById('urlInput').value);
             }
+        });
+        
+        // Klickbare Liste
+        document.querySelectorAll('.site-list li').forEach(li => {
+            li.addEventListener('click', () => {
+                loadUrl(li.dataset.url);
+            });
         });
         
         // Initialisieren
         setupDiscord();
-        loadUrl('https://example.com');
+        
+        // Frame zuerst verstecken
+        frameEl.style.display = 'none';
     </script>
 </body>
 </html>
